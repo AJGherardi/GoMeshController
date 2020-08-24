@@ -1,8 +1,6 @@
-package main
+package mesh
 
 import (
-	"fmt"
-
 	"github.com/google/gousb"
 )
 
@@ -58,38 +56,6 @@ func Open() Controller {
 		epOut:   epOut,
 	}
 	return controller
-}
-
-func main() {
-	controller := Open()
-	go controller.Read(
-		func() {
-			fmt.Println("setupStatus")
-			controller.AddKey([]byte{0x00, 0x00})
-		},
-		func(appIdx []byte) {
-			fmt.Printf("appKeyStatus %x \n", appIdx)
-		},
-		func(uuid []byte) {
-			fmt.Printf("unprovBeacon %x \n", uuid)
-			// controller.Provision(uuid)
-		},
-		func(addr []byte) {
-			fmt.Printf("nodeAdded %x \n", addr)
-			controller.ConfigureNode(addr, []byte{0x00, 0x00})
-		},
-	)
-	// controller.Reset()
-	// time.Sleep(1 * time.Second)
-	// controller.Reboot()
-	// time.Sleep(1 * time.Second)
-	// controller.Setup()
-	// controller.Provision([]byte{0x19, 0x8a, 0x1d, 0x0d, 0x7e, 0xd1, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})
-	controller.SendMessage(0x00, []byte{0x00, 0x0a}, []byte{0x00, 0x00})
-	// controller.ResetNode([]byte{0x00, 0x08})
-	defer controller.Close()
-	for {
-	}
 }
 
 // Close must be called when the Mesh Controller is not needed anymore
