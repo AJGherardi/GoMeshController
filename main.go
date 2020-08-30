@@ -19,6 +19,7 @@ const (
 	OpReset               = 0x10
 	OpReboot              = 0x11
 	OpNodeReset           = 0x12
+	OpState               = 0x13
 )
 
 // Controller holds all the needed usb vars to talk to the Mesh Controller
@@ -72,6 +73,7 @@ func (controller *Controller) Read(
 	onAddKeyStatus func(appIdx []byte),
 	onUnprovisionedBeacon func(uuid []byte),
 	onNodeAdded func(addr []byte),
+	onState func(addr []byte, state byte),
 ) {
 	for {
 		// Read a packet
@@ -89,6 +91,9 @@ func (controller *Controller) Read(
 		}
 		if buf[0] == OpNodeAdded {
 			onNodeAdded(buf[1:3])
+		}
+		if buf[0] == OpState {
+			onState(buf[1:3], buf[3])
 		}
 	}
 }
