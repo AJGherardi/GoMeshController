@@ -20,6 +20,8 @@ const (
 	OpReboot              = 0x11
 	OpNodeReset           = 0x12
 	OpState               = 0x13
+	OpConfigureElem       = 0x14
+	OpConfigureElemStatus = 0x15
 )
 
 // Controller holds all the needed usb vars to talk to the Mesh Controller
@@ -128,6 +130,15 @@ func (controller *Controller) SendMessage(state byte, addr []byte, appIdx []byte
 func (controller *Controller) ConfigureNode(addr []byte, appIdx []byte) {
 	parms := []byte{OpConfigureNode}
 	parms = append(parms, addr...)
+	parms = append(parms, appIdx...)
+	controller.WriteData(parms)
+}
+
+// ConfigureElem binds an app key to the elem with the given addr
+func (controller *Controller) ConfigureElem(nodeAddr []byte, elemAddr []byte, appIdx []byte) {
+	parms := []byte{OpConfigureElem}
+	parms = append(parms, nodeAddr...)
+	parms = append(parms, elemAddr...)
 	parms = append(parms, appIdx...)
 	controller.WriteData(parms)
 }
