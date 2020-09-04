@@ -22,6 +22,9 @@ const (
 	OpState               = 0x13
 	OpConfigureElem       = 0x14
 	OpConfigureElemStatus = 0x15
+	OpSendRecallMessage   = 0x16
+	OpSendStoreMessage    = 0x17
+	OpSendDeleteMessage   = 0x18
 )
 
 // Controller holds all the needed usb vars to talk to the Mesh Controller
@@ -126,6 +129,33 @@ func (controller *Controller) SendMessage(state byte, addr []byte, appIdx []byte
 	controller.WriteData(parms)
 }
 
+// SendRecallMessage sends a bt mesh scene recall message using the app key at the given index to the given addr
+func (controller *Controller) SendRecallMessage(sceneNumber []byte, addr []byte, appIdx []byte) {
+	parms := []byte{OpSendRecallMessage}
+	parms = append(parms, sceneNumber...)
+	parms = append(parms, addr...)
+	parms = append(parms, appIdx...)
+	controller.WriteData(parms)
+}
+
+// SendStoreMessage sends a bt mesh scene store message using the app key at the given index to the given addr
+func (controller *Controller) SendStoreMessage(sceneNumber []byte, addr []byte, appIdx []byte) {
+	parms := []byte{OpSendStoreMessage}
+	parms = append(parms, sceneNumber...)
+	parms = append(parms, addr...)
+	parms = append(parms, appIdx...)
+	controller.WriteData(parms)
+}
+
+// SendDeleteMessage sends a bt mesh scene delete message using the app key at the given index to the given addr
+func (controller *Controller) SendDeleteMessage(sceneNumber []byte, addr []byte, appIdx []byte) {
+	parms := []byte{OpSendDeleteMessage}
+	parms = append(parms, sceneNumber...)
+	parms = append(parms, addr...)
+	parms = append(parms, appIdx...)
+	controller.WriteData(parms)
+}
+
 // ConfigureNode binds an app key to the node with the given addr
 func (controller *Controller) ConfigureNode(addr []byte, appIdx []byte) {
 	parms := []byte{OpConfigureNode}
@@ -135,8 +165,9 @@ func (controller *Controller) ConfigureNode(addr []byte, appIdx []byte) {
 }
 
 // ConfigureElem binds an app key to the elem with the given addr
-func (controller *Controller) ConfigureElem(nodeAddr []byte, elemAddr []byte, appIdx []byte) {
+func (controller *Controller) ConfigureElem(groupAddr []byte, nodeAddr []byte, elemAddr []byte, appIdx []byte) {
 	parms := []byte{OpConfigureElem}
+	parms = append(parms, groupAddr...)
 	parms = append(parms, nodeAddr...)
 	parms = append(parms, elemAddr...)
 	parms = append(parms, appIdx...)
