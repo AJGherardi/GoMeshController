@@ -25,6 +25,8 @@ const (
 	OpSendRecallMessage   = 0x16
 	OpSendStoreMessage    = 0x17
 	OpSendDeleteMessage   = 0x18
+	OpSendBindMessage     = 0x19
+	OpEvent               = 0x20
 )
 
 // Controller holds all the needed usb vars to talk to the Mesh Controller
@@ -79,6 +81,7 @@ func (controller *Controller) Read(
 	onUnprovisionedBeacon func(uuid []byte),
 	onNodeAdded func(addr []byte),
 	onState func(addr []byte, state byte),
+	onEvent func(addr []byte),
 ) {
 	for {
 		// Read a packet
@@ -99,6 +102,9 @@ func (controller *Controller) Read(
 		}
 		if buf[0] == OpState {
 			onState(buf[1:3], buf[3])
+		}
+		if buf[0] == OpEvent {
+			onEvent(buf[1:3])
 		}
 	}
 }
@@ -150,6 +156,15 @@ func (controller *Controller) SendStoreMessage(sceneNumber []byte, addr []byte, 
 // SendDeleteMessage sends a bt mesh scene delete message using the app key at the given index to the given addr
 func (controller *Controller) SendDeleteMessage(sceneNumber []byte, addr []byte, appIdx []byte) {
 	parms := []byte{OpSendDeleteMessage}
+	parms = append(parms, sceneNumber...)
+	parms = append(parms, addr...)
+	parms = append(parms, appIdx...)
+	controller.WriteData(parms)
+}
+
+// SendBindMessage sends a bt mesh event bind message using the app key at the given index to the given addr
+func (controller *Controller) SendBindMessage(sceneNumber []byte, addr []byte, appIdx []byte) {
+	parms := []byte{OpSendBindMessage}
 	parms = append(parms, sceneNumber...)
 	parms = append(parms, addr...)
 	parms = append(parms, appIdx...)
