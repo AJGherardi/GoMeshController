@@ -1,6 +1,8 @@
 package mesh
 
 import (
+	"encoding/binary"
+
 	"github.com/google/gousb"
 )
 
@@ -77,11 +79,11 @@ func (controller *Controller) Close() {
 // Read calls the provided funcs when a msg from the Mesh Controller is recived
 func (controller *Controller) Read(
 	onSetupStatus func(),
-	onAddKeyStatus func(appIdx []byte),
+	onAddKeyStatus func(appIdx uint16),
 	onUnprovisionedBeacon func(uuid []byte),
-	onNodeAdded func(addr []byte),
-	onState func(addr []byte, state byte),
-	onEvent func(addr []byte),
+	onNodeAdded func(addr uint16),
+	onState func(addr uint16, state byte),
+	onEvent func(addr uint16),
 ) {
 	for {
 		// Read a packet
@@ -92,27 +94,27 @@ func (controller *Controller) Read(
 			onSetupStatus()
 		}
 		if buf[0] == OpAddKeyStatus {
-			onAddKeyStatus(buf[1:3])
+			onAddKeyStatus(binary.LittleEndian.Uint16(buf[1:3]))
 		}
 		if buf[0] == OpUnprovisionedBeacon {
 			onUnprovisionedBeacon(buf[1:17])
 		}
 		if buf[0] == OpNodeAdded {
-			onNodeAdded(buf[1:3])
+			onNodeAdded(binary.LittleEndian.Uint16(buf[1:3]))
 		}
 		if buf[0] == OpState {
-			onState(buf[1:3], buf[3])
+			onState(binary.LittleEndian.Uint16(buf[1:3]), buf[3])
 		}
 		if buf[0] == OpEvent {
-			onEvent(buf[1:3])
+			onEvent(binary.LittleEndian.Uint16(buf[1:3]))
 		}
 	}
 }
 
 // ResetNode Removes the node with the givin addr from the mesh network
-func (controller *Controller) ResetNode(addr []byte) {
+func (controller *Controller) ResetNode(addr uint16) {
 	parms := []byte{OpNodeReset}
-	parms = append(parms, addr...)
+	parms = append(parms, toByteSlice(addr)...)
 	controller.WriteData(parms)
 }
 
@@ -127,65 +129,65 @@ func (controller *Controller) Reset() {
 }
 
 // SendMessage sends a bt mesh message using the app key at the given index to the given addr
-func (controller *Controller) SendMessage(state byte, addr []byte, appIdx []byte) {
+func (controller *Controller) SendMessage(state byte, addr uint16, appIdx uint16) {
 	parms := []byte{OpSendMessage}
 	parms = append(parms, state)
-	parms = append(parms, addr...)
-	parms = append(parms, appIdx...)
+	parms = append(parms, toByteSlice(addr)...)
+	parms = append(parms, toByteSlice(appIdx)...)
 	controller.WriteData(parms)
 }
 
 // SendRecallMessage sends a bt mesh scene recall message using the app key at the given index to the given addr
-func (controller *Controller) SendRecallMessage(sceneNumber []byte, addr []byte, appIdx []byte) {
+func (controller *Controller) SendRecallMessage(sceneNumber uint16, addr uint16, appIdx uint16) {
 	parms := []byte{OpSendRecallMessage}
-	parms = append(parms, sceneNumber...)
-	parms = append(parms, addr...)
-	parms = append(parms, appIdx...)
+	parms = append(parms, toByteSlice(sceneNumber)...)
+	parms = append(parms, toByteSlice(addr)...)
+	parms = append(parms, toByteSlice(appIdx)...)
 	controller.WriteData(parms)
 }
 
 // SendStoreMessage sends a bt mesh scene store message using the app key at the given index to the given addr
-func (controller *Controller) SendStoreMessage(sceneNumber []byte, addr []byte, appIdx []byte) {
+func (controller *Controller) SendStoreMessage(sceneNumber uint16, addr uint16, appIdx uint16) {
 	parms := []byte{OpSendStoreMessage}
-	parms = append(parms, sceneNumber...)
-	parms = append(parms, addr...)
-	parms = append(parms, appIdx...)
+	parms = append(parms, toByteSlice(sceneNumber)...)
+	parms = append(parms, toByteSlice(addr)...)
+	parms = append(parms, toByteSlice(appIdx)...)
 	controller.WriteData(parms)
 }
 
 // SendDeleteMessage sends a bt mesh scene delete message using the app key at the given index to the given addr
-func (controller *Controller) SendDeleteMessage(sceneNumber []byte, addr []byte, appIdx []byte) {
+func (controller *Controller) SendDeleteMessage(sceneNumber uint16, addr uint16, appIdx uint16) {
 	parms := []byte{OpSendDeleteMessage}
-	parms = append(parms, sceneNumber...)
-	parms = append(parms, addr...)
-	parms = append(parms, appIdx...)
+	parms = append(parms, toByteSlice(sceneNumber)...)
+	parms = append(parms, toByteSlice(addr)...)
+	parms = append(parms, toByteSlice(appIdx)...)
 	controller.WriteData(parms)
 }
 
 // SendBindMessage sends a bt mesh event bind message using the app key at the given index to the given addr
-func (controller *Controller) SendBindMessage(sceneNumber []byte, addr []byte, appIdx []byte) {
+func (controller *Controller) SendBindMessage(sceneNumber uint16, addr uint16, appIdx uint16) {
 	parms := []byte{OpSendBindMessage}
-	parms = append(parms, sceneNumber...)
-	parms = append(parms, addr...)
-	parms = append(parms, appIdx...)
+	parms = append(parms, toByteSlice(sceneNumber)...)
+	parms = append(parms, toByteSlice(addr)...)
+	parms = append(parms, toByteSlice(appIdx)...)
 	controller.WriteData(parms)
 }
 
 // ConfigureNode binds an app key to the node with the given addr
-func (controller *Controller) ConfigureNode(addr []byte, appIdx []byte) {
+func (controller *Controller) ConfigureNode(addr uint16, appIdx uint16) {
 	parms := []byte{OpConfigureNode}
-	parms = append(parms, addr...)
-	parms = append(parms, appIdx...)
+	parms = append(parms, toByteSlice(addr)...)
+	parms = append(parms, toByteSlice(appIdx)...)
 	controller.WriteData(parms)
 }
 
 // ConfigureElem binds an app key to the elem with the given addr
-func (controller *Controller) ConfigureElem(groupAddr []byte, nodeAddr []byte, elemAddr []byte, appIdx []byte) {
+func (controller *Controller) ConfigureElem(groupAddr uint16, nodeAddr uint16, elemAddr uint16, appIdx uint16) {
 	parms := []byte{OpConfigureElem}
-	parms = append(parms, groupAddr...)
-	parms = append(parms, nodeAddr...)
-	parms = append(parms, elemAddr...)
-	parms = append(parms, appIdx...)
+	parms = append(parms, toByteSlice(groupAddr)...)
+	parms = append(parms, toByteSlice(nodeAddr)...)
+	parms = append(parms, toByteSlice(elemAddr)...)
+	parms = append(parms, toByteSlice(appIdx)...)
 	controller.WriteData(parms)
 }
 
@@ -197,9 +199,9 @@ func (controller *Controller) Provision(uuid []byte) {
 }
 
 // AddKey generates an app key at the given index
-func (controller *Controller) AddKey(appIdx []byte) {
+func (controller *Controller) AddKey(appIdx uint16) {
 	parms := []byte{OpAddKey}
-	parms = append(parms, appIdx...)
+	parms = append(parms, toByteSlice(appIdx)...)
 	controller.WriteData(parms)
 }
 
@@ -211,4 +213,11 @@ func (controller *Controller) Setup() {
 // WriteData writes data to the Mesh Controller over usb
 func (controller *Controller) WriteData(data []byte) {
 	controller.epOut.Write(data)
+}
+
+// Only works with unsigned 16 bit numbers
+func toByteSlice(imput uint16) []byte {
+	bytes := []byte{0x00, 0x00}
+	binary.LittleEndian.PutUint16(bytes, imput)
+	return bytes
 }
