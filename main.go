@@ -2,6 +2,8 @@ package mesh
 
 import (
 	"encoding/binary"
+	"errors"
+	"time"
 
 	"github.com/google/gousb"
 )
@@ -42,20 +44,35 @@ type Controller struct {
 }
 
 // Open gets the Mesh Controller using usb
-func Open() Controller {
+func Open() (Controller, error) {
 	// Get ctx and defer close func
 	ctx := gousb.NewContext()
 	// Get device and defer close func
-	dev, _ := ctx.OpenDeviceWithVIDPID(0x2fe3, 0x0100)
+	dev, err := ctx.OpenDeviceWithVIDPID(0x2fe3, 0x0100)
+	if err != nil {
+		return Controller{}, errors.New("Unable to open controller")
+	}
 	// Set auto detach from kernel to true
-	dev.SetAutoDetach(true)
+	err = dev.SetAutoDetach(true)
+	if err != nil {
+		return Controller{}, errors.New("Unable to open controller")
+	}
 	// Get main config and defer close
-	cfg, _ := dev.Config(1)
+	cfg, err := dev.Config(1)
+	if err != nil {
+		return Controller{}, errors.New("Unable to get config")
+	}
 	// Get interface 1 and defer close
-	intf, _ := cfg.Interface(1, 0)
+	intf, err := cfg.Interface(1, 0)
+	if err != nil {
+		return Controller{}, errors.New("Unable to open interface")
+	}
 	// Get out and in endpoints
-	epIn, _ := intf.InEndpoint(2)
-	epOut, _ := intf.OutEndpoint(1)
+	epIn, err := intf.InEndpoint(2)
+	epOut, err := intf.OutEndpoint(1)
+	if err != nil {
+		return Controller{}, errors.New("Unable to open endpoints")
+	}
 	// Make struct
 	controller := Controller{
 		context: ctx,
@@ -65,7 +82,7 @@ func Open() Controller {
 		epIn:    epIn,
 		epOut:   epOut,
 	}
-	return controller
+	return controller, nil
 }
 
 // Close must be called when the Mesh Controller is not needed anymore
@@ -84,11 +101,19 @@ func (controller *Controller) Read(
 	onNodeAdded func(addr uint16),
 	onState func(addr uint16, state byte),
 	onEvent func(addr uint16),
-) {
+) error {
 	for {
 		// Read a packet
 		buf := make([]byte, controller.epIn.Desc.MaxPacketSize)
 		controller.epIn.Read(buf)
+		// if err != nil {
+		// 	if err != gousb.ErrorOverflow && err != gousb.TransferNoDevice && err != gousb.ErrorIO {
+		// 		// return errors.New("Failed to read message")
+		// 		log.Fatal(err)
+		// 	}
+		// 	// If overflow discard message
+		// 	continue
+		// }
 		// Map to provided function
 		if buf[0] == OpSetupStatus {
 			onSetupStatus()
@@ -112,107 +137,118 @@ func (controller *Controller) Read(
 }
 
 // ResetNode Removes the node with the givin addr from the mesh network
-func (controller *Controller) ResetNode(addr uint16) {
+func (controller *Controller) ResetNode(addr uint16) error {
 	parms := []byte{OpNodeReset}
 	parms = append(parms, toByteSlice(addr)...)
-	controller.WriteData(parms)
+	return controller.WriteData(parms)
 }
 
 // Reboot reboots the Mesh Controller must be called after reset
-func (controller *Controller) Reboot() {
-	controller.WriteData([]byte{OpReboot})
+func (controller *Controller) Reboot() error {
+	return controller.WriteData([]byte{OpReboot})
 }
 
 // Reset removes all mesh related items from the Mesh Controller's flash
-func (controller *Controller) Reset() {
-	controller.WriteData([]byte{OpReset})
+func (controller *Controller) Reset() error {
+	return controller.WriteData([]byte{OpReset})
 }
 
 // SendMessage sends a bt mesh message using the app key at the given index to the given addr
-func (controller *Controller) SendMessage(state byte, addr uint16, appIdx uint16) {
+func (controller *Controller) SendMessage(state byte, addr uint16, appIdx uint16) error {
 	parms := []byte{OpSendMessage}
 	parms = append(parms, state)
 	parms = append(parms, toByteSlice(addr)...)
 	parms = append(parms, toByteSlice(appIdx)...)
-	controller.WriteData(parms)
+	return controller.WriteData(parms)
 }
 
 // SendRecallMessage sends a bt mesh scene recall message using the app key at the given index to the given addr
-func (controller *Controller) SendRecallMessage(sceneNumber uint16, addr uint16, appIdx uint16) {
+func (controller *Controller) SendRecallMessage(sceneNumber uint16, addr uint16, appIdx uint16) error {
 	parms := []byte{OpSendRecallMessage}
 	parms = append(parms, toByteSlice(sceneNumber)...)
 	parms = append(parms, toByteSlice(addr)...)
 	parms = append(parms, toByteSlice(appIdx)...)
-	controller.WriteData(parms)
+	return controller.WriteData(parms)
 }
 
 // SendStoreMessage sends a bt mesh scene store message using the app key at the given index to the given addr
-func (controller *Controller) SendStoreMessage(sceneNumber uint16, addr uint16, appIdx uint16) {
+func (controller *Controller) SendStoreMessage(sceneNumber uint16, addr uint16, appIdx uint16) error {
 	parms := []byte{OpSendStoreMessage}
 	parms = append(parms, toByteSlice(sceneNumber)...)
 	parms = append(parms, toByteSlice(addr)...)
 	parms = append(parms, toByteSlice(appIdx)...)
-	controller.WriteData(parms)
+	return controller.WriteData(parms)
 }
 
 // SendDeleteMessage sends a bt mesh scene delete message using the app key at the given index to the given addr
-func (controller *Controller) SendDeleteMessage(sceneNumber uint16, addr uint16, appIdx uint16) {
+func (controller *Controller) SendDeleteMessage(sceneNumber uint16, addr uint16, appIdx uint16) error {
 	parms := []byte{OpSendDeleteMessage}
 	parms = append(parms, toByteSlice(sceneNumber)...)
 	parms = append(parms, toByteSlice(addr)...)
 	parms = append(parms, toByteSlice(appIdx)...)
-	controller.WriteData(parms)
+	return controller.WriteData(parms)
 }
 
 // SendBindMessage sends a bt mesh event bind message using the app key at the given index to the given addr
-func (controller *Controller) SendBindMessage(sceneNumber uint16, addr uint16, appIdx uint16) {
+func (controller *Controller) SendBindMessage(sceneNumber uint16, addr uint16, appIdx uint16) error {
 	parms := []byte{OpSendBindMessage}
 	parms = append(parms, toByteSlice(sceneNumber)...)
 	parms = append(parms, toByteSlice(addr)...)
 	parms = append(parms, toByteSlice(appIdx)...)
-	controller.WriteData(parms)
+	return controller.WriteData(parms)
 }
 
 // ConfigureNode binds an app key to the node with the given addr
-func (controller *Controller) ConfigureNode(addr uint16, appIdx uint16) {
+func (controller *Controller) ConfigureNode(addr uint16, appIdx uint16) error {
 	parms := []byte{OpConfigureNode}
 	parms = append(parms, toByteSlice(addr)...)
 	parms = append(parms, toByteSlice(appIdx)...)
-	controller.WriteData(parms)
+	return controller.WriteData(parms)
 }
 
 // ConfigureElem binds an app key to the elem with the given addr
-func (controller *Controller) ConfigureElem(groupAddr uint16, nodeAddr uint16, elemAddr uint16, appIdx uint16) {
+func (controller *Controller) ConfigureElem(groupAddr uint16, nodeAddr uint16, elemAddr uint16, appIdx uint16) error {
 	parms := []byte{OpConfigureElem}
 	parms = append(parms, toByteSlice(groupAddr)...)
 	parms = append(parms, toByteSlice(nodeAddr)...)
 	parms = append(parms, toByteSlice(elemAddr)...)
 	parms = append(parms, toByteSlice(appIdx)...)
-	controller.WriteData(parms)
+	return controller.WriteData(parms)
 }
 
 // Provision adds a device with the given uuid to the network
-func (controller *Controller) Provision(uuid []byte) {
+func (controller *Controller) Provision(uuid []byte) error {
 	parms := []byte{OpProvision}
 	parms = append(parms, uuid...)
-	controller.WriteData(parms)
+	return controller.WriteData(parms)
 }
 
 // AddKey generates an app key at the given index
-func (controller *Controller) AddKey(appIdx uint16) {
+func (controller *Controller) AddKey(appIdx uint16) error {
 	parms := []byte{OpAddKey}
 	parms = append(parms, toByteSlice(appIdx)...)
-	controller.WriteData(parms)
+	return controller.WriteData(parms)
 }
 
 // Setup creates a new bt mesh network
-func (controller *Controller) Setup() {
-	controller.WriteData([]byte{OpSetup})
+func (controller *Controller) Setup() error {
+	return controller.WriteData([]byte{OpSetup})
 }
 
 // WriteData writes data to the Mesh Controller over usb
-func (controller *Controller) WriteData(data []byte) {
-	controller.epOut.Write(data)
+func (controller *Controller) WriteData(data []byte) error {
+	_, err := controller.epOut.Write(data)
+	if err != nil {
+		// If write fails retry after a delay
+		time.Sleep(200 * time.Millisecond)
+		_, err = controller.epOut.Write(data)
+
+		// If write fails again error out
+		if err != nil {
+			return errors.New("Write failed")
+		}
+	}
+	return nil
 }
 
 // Only works with unsigned 16 bit numbers
