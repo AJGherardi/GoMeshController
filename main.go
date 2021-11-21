@@ -93,7 +93,7 @@ func (controller *Controller) Close() {
 	controller.context.Close()
 }
 
-// Read calls the provided funcs when a msg from the Mesh Controller is recived
+// Read calls the provided funcs when a msg from the Mesh Controller is received
 func (controller *Controller) Read(
 	onSetupStatus func(),
 	onAddKeyStatus func(appIdx uint16),
@@ -252,8 +252,8 @@ func (controller *Controller) WriteData(data []byte) error {
 }
 
 // Only works with unsigned 16 bit numbers
-func toByteSlice(imput uint16) []byte {
+func toByteSlice(input uint16) []byte {
 	bytes := []byte{0x00, 0x00}
-	binary.LittleEndian.PutUint16(bytes, imput)
+	binary.LittleEndian.PutUint16(bytes, input)
 	return bytes
 }
